@@ -9,8 +9,8 @@ from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dat
 config = configparser.ConfigParser()
 config.read('dl.cfg')
 
-os.environ['AWS_ACCESS_KEY_ID']=config['AWS_ACCESS_KEY_ID']
-os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS_SECRET_ACCESS_KEY']
+os.environ['AWS_ACCESS_KEY_ID']=config['AWS']['AWS_ACCESS_KEY_ID']
+os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 
 def create_spark_session():
@@ -74,11 +74,11 @@ def process_log_data(spark, input_data, output_data):
     users_table.write.parquet(os.path.join(output_data, 'users/users.parquet'), 'overwrite')
 
     # create timestamp column from original timestamp column
-    get_timestamp = udf(lambda x: datetime.fromtimestamp((x / 1000)), Stamp())
+    get_timestamp = udf(lambda x: datetime.fromtimestamp((int(x) / 1000)))
     df = df.withColumn('timestamp', get_datetime(df.ts))
     
     # create datetime column from original timestamp column
-    get_datetime = udf(lambda x: datetime.fromtimestamp((x / 1000)), Stamp())
+    get_datetime = udf(lambda x: datetime.fromtimestamp((int(x) / 1000)))
     df = df.withColumn('datetime', get_datetime(df.ts))
     
     # extract columns to create time table
@@ -96,7 +96,7 @@ def process_log_data(spark, input_data, output_data):
 
     # read in song data to use for songplays table
     song_data = input_data + "song_data/*/*/*/*.json"
-    song_df = spark.read.json(song_data, schema = get_song_schema())
+    song_df = spark.read.json(song_data)
     
     # extract columns from joined song and log datasets to create songplays table 
     song_df.createOrReplaceTempView("song_data")
@@ -123,7 +123,7 @@ def process_log_data(spark, input_data, output_data):
     
     # write songplays table to parquet files partitioned by year and month
     songplays_table.write.partitionBy("year", "month").parquet(os.path.join(output_dat, 
-                                                                            "songplays_table.parquet",
+                                                                            "songplays_table.parquet"),
                                                                             "overwrite")
 
 
